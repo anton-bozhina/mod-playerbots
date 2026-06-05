@@ -83,6 +83,7 @@ void LootObject::Refresh(Player* bot, ObjectGuid lootGUID)
     GameObject* go = botAI->GetGameObject(lootGUID);
     if (go && go->isSpawned() && go->GetGoState() == GO_STATE_READY)
     {
+        bool isQuestActiveChest = go->GetGoType() == GAMEOBJECT_TYPE_CHEST && go->ActivateToQuest(bot);
         bool onlyHasQuestItems = true;
         bool hasAnyQuestItems = false;
 
@@ -168,7 +169,7 @@ void LootObject::Refresh(Player* bot, ObjectGuid lootGUID)
         }
 
         // If gameobject has only quest items that bot doesn’t need, skip it.
-        if (hasAnyQuestItems && onlyHasQuestItems)
+        if (!isQuestActiveChest && hasAnyQuestItems && onlyHasQuestItems)
             return;
 
         // Otherwise, loot it.
@@ -302,7 +303,8 @@ bool LootObject::IsLootPossible(Player* bot)
     // Prevent bot from running to chests that are unlootable (e.g. Gunship Armory before completing the event) or on
     // respawn time
     GameObject* go = botAI->GetGameObject(guid);
-    if (go && (go->HasFlag(GAMEOBJECT_FLAGS, GO_FLAG_INTERACT_COND | GO_FLAG_NOT_SELECTABLE) || !go->isSpawned()))
+    if (go && (!go->isSpawned() || go->HasFlag(GAMEOBJECT_FLAGS, GO_FLAG_NOT_SELECTABLE) ||
+               (go->HasFlag(GAMEOBJECT_FLAGS, GO_FLAG_INTERACT_COND) && !go->ActivateToQuest(bot))))
         return false;
 
     if (skillId == SKILL_NONE)

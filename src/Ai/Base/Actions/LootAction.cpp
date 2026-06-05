@@ -140,7 +140,7 @@ bool OpenLootAction::DoLoot(LootObject& lootObject)
         return false;
 
     // This prevents dungeon chests like Tribunal Chest (Halls of Stone) from being ninja'd by the bots
-    if (go && go->HasFlag(GAMEOBJECT_FLAGS, GO_FLAG_INTERACT_COND))
+    if (go && go->HasFlag(GAMEOBJECT_FLAGS, GO_FLAG_INTERACT_COND) && !go->ActivateToQuest(bot))
         return false;
 
     // This prevents raid chests like Gunship Armory (ICC) from being ninja'd by the bots
@@ -152,6 +152,14 @@ bool OpenLootAction::DoLoot(LootObject& lootObject)
 
     if (lootObject.skillId == SKILL_HERBALISM)
         return botAI->HasSkill(SKILL_HERBALISM) ? botAI->CastSpell(HERB_GATHERING, bot) : false;
+
+    if (go && go->GetGoType() == GAMEOBJECT_TYPE_CHEST && lootObject.skillId == SKILL_NONE && !lootObject.reqItem &&
+        go->ActivateToQuest(bot))
+    {
+        bot->SendLoot(go->GetGUID(), LOOT_CORPSE);
+        botAI->SetNextCheckDelay(sPlayerbotAIConfig.lootDelay);
+        return true;
+    }
 
     uint32 spellId = GetOpeningSpell(lootObject);
     if (!spellId)
